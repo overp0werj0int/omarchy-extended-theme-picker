@@ -15,7 +15,7 @@ This plugin contains a modified copy of the built-in picker. Upstream picker cha
 ## Install
 
 ```sh
-omarchy plugin add https://github.com/ejuro/omarchy-extended-theme-picker.git --enable
+omarchy plugin add https://github.com/erikrjohansson/omarchy-extended-theme-picker.git --enable
 ```
 
 Follow Omarchy's confirmation prompt. Open your normal theme picker to use it. If you already use another replacement for `omarchy.image-picker`, disable that replacement first so only one is enabled.
