@@ -73,17 +73,12 @@ Item {
     onFileChanged: reload()
   }
 
-  property bool blurRuleEnsured: false
+  // Hyprland applies layer rules when a surface maps, so the rule has to exist
+  // before the first open. It only blurs when Hyprland blur itself is enabled
+  // (Omarchy's Glassy toggle); otherwise the glass is tint and sheen alone.
+  onGlassOverlayChanged: if (glassOverlay) Util.execArgv(["hyprctl", "eval", 'hl.layer_rule({ match = { namespace = "^omarchy-image-selector$" }, blur = true, ignore_alpha = 0.35 })'])
 
-  // The blur rule needs ignore_alpha so the glass tint stays translucent; add it
-  // even when the user's own glassy toggle is off.
-  onOpenedChanged: {
-    if (!opened) layoutSettled = false
-    else if (glassOverlay && !blurRuleEnsured) {
-      blurRuleEnsured = true
-      Util.execArgv(["hyprctl", "eval", 'hl.layer_rule({ match = { namespace = "^omarchy-image-selector$" }, blur = true, ignore_alpha = 0.35 })'])
-    }
-  }
+  onOpenedChanged: if (!opened) layoutSettled = false
 
   function scriptPath(name) {
     return omarchyPath + "/shell/plugins/image-picker/" + name
