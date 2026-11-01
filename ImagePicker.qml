@@ -73,7 +73,17 @@ Item {
     onFileChanged: reload()
   }
 
-  onOpenedChanged: if (!opened) layoutSettled = false
+  property bool blurRuleEnsured: false
+
+  // The blur rule needs ignore_alpha so the glass tint stays translucent; add it
+  // even when the user's own glassy toggle is off.
+  onOpenedChanged: {
+    if (!opened) layoutSettled = false
+    else if (glassOverlay && !blurRuleEnsured) {
+      blurRuleEnsured = true
+      Util.execArgv(["hyprctl", "eval", 'hl.layer_rule({ match = { namespace = "^omarchy-image-selector$" }, blur = true, ignore_alpha = 0.35 })'])
+    }
+  }
 
   function scriptPath(name) {
     return omarchyPath + "/shell/plugins/image-picker/" + name
@@ -505,7 +515,25 @@ Item {
     Rectangle {
       anchors.fill: parent
       visible: root.opened && root.imagesLoaded
-      color: root.themeCollections ? Util.alpha(Color.background, 0.84) : root.scrim
+      color: root.glassOverlay ? Util.alpha(Color.background, 0.5)
+        : root.themeCollections ? Util.alpha(Color.background, 0.84) : root.scrim
+
+      Rectangle {
+        visible: root.glassOverlay
+        anchors { top: parent.top; left: parent.left; right: parent.right }
+        height: parent.height * 0.4
+        gradient: Gradient {
+          GradientStop { position: 0; color: Util.alpha(Color.foreground, 0.06) }
+          GradientStop { position: 1; color: "transparent" }
+        }
+      }
+
+      Rectangle {
+        visible: root.glassOverlay
+        anchors { top: parent.top; left: parent.left; right: parent.right }
+        height: 1
+        color: Util.alpha(Color.foreground, 0.08)
+      }
     }
 
     MouseArea {
