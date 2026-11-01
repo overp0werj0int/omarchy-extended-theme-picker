@@ -11,6 +11,7 @@ Item {
     property real emphasis: selected ? 1 : 0
     property bool activeTheme: false
     property bool rowFocused: false
+    property real rowFocus: rowFocused ? 1 : 0
     property real skew: 14
     property int previewWidth: 960
     signal clicked()
@@ -78,7 +79,7 @@ Item {
         }
         Rectangle {
             anchors.fill: parent
-            color: Util.alpha(Color.background, 0.48 + ((card.rowFocused ? 0 : 0.18) - 0.48) * card.emphasis)
+            color: Util.alpha(Color.background, 0.48 + (0.18 * (1 - card.rowFocus) - 0.48) * card.emphasis)
         }
     }
     Shape {

@@ -467,19 +467,27 @@ FocusScope {
 
     Item {
         id: stage
-        // A row is a 30px heading, its preview, a 10px gap and a 24px caption.
+        // Cards draw at twice the scale that once fit three full-size rows,
+        // capped so the focused row's 904px stack (plus skew) fits across the
+        // screen. Text and its spacing are scaled back so it reads at the
+        // original size.
+        readonly property real baseScale: Math.min(1.25, (root.width - 64) / 1040, (root.height - 90) / 1100)
+        readonly property real textScale: baseScale / scale
+        // A row is a heading band, its preview, a gap and a caption band.
         // Rows sit 26px apart: the focused row (240px preview) centered, the
         // rest at their compact 115px preview height above and below it.
-        readonly property int focusedPitch: 330
-        readonly property int compactPitch: 205
+        readonly property real headingHeight: 30 * textScale
+        readonly property real captionGap: 10 * textScale
+        readonly property real captionHeight: 24 * textScale
+        readonly property real rowChrome: headingHeight + captionGap + captionHeight
+        readonly property real focusedPitch: 240 + rowChrome + 26
+        readonly property real compactPitch: 115 + rowChrome + 26
         readonly property real centerY: 40 + (height - 40) / 2
         function rowCenter(distance) {
             return centerY + distance * compactPitch
                 + (distance < 0 ? -1 : 1) * Math.min(1, Math.abs(distance)) * (focusedPitch - compactPitch) / 2
         }
-        // Twice the scale that once fit three full-size rows, capped so the
-        // focused row's 904px stack (plus skew) still fits across the screen.
-        scale: Math.min(2 * Math.min(1.25, (root.width - 64) / 1040, (root.height - 90) / 1100), (root.width - 64) / 940)
+        scale: Math.min(2 * baseScale, (root.width - 64) / 940)
         width: (root.width - 64) / scale
         height: (root.height - 90) / scale
         clip: true
@@ -510,7 +518,7 @@ FocusScope {
             text: root.query ? 'Search: ' + root.query + '  ·  Ctrl+Backspace clear' : ''
             color: Color.foreground
             font.family: Style.fontFamily
-            font.pixelSize: 15
+            font.pixelSize: 15 * stage.textScale
         }
 
         Repeater {
@@ -522,26 +530,24 @@ FocusScope {
                 readonly property bool focused: index === root.groupIndex
                 readonly property int selectedIndex: Model.position(modelData.images, root.remembered[modelData.id], root.currentImage)
                 readonly property var selectedImage: modelData.images[selectedIndex] || null
-                property real previewWidth: focused ? 414 : 220
-                property real previewHeight: focused ? 240 : 115
-                property real step: focused ? 49 : 27
-                property real sliceWidth: focused ? 71 : 40
+                // 1 for the focused row, 0 a row away. Size, fade and text all
+                // follow the one scroll animation instead of timers of their own.
+                readonly property real focusAmount: Math.max(0, 1 - Math.abs(index - root.scrollPosition))
+                readonly property real previewWidth: 220 + 194 * focusAmount
+                readonly property real previewHeight: 115 + 125 * focusAmount
+                readonly property real step: 27 + 22 * focusAmount
+                readonly property real sliceWidth: 40 + 31 * focusAmount
                 readonly property real stackWidth: previewWidth + 10 * step
-                Behavior on previewWidth { NumberAnimation { duration: 180; easing.type: Easing.OutCubic } }
-                Behavior on previewHeight { NumberAnimation { duration: 180; easing.type: Easing.OutCubic } }
-                Behavior on step { NumberAnimation { duration: 180; easing.type: Easing.OutCubic } }
-                Behavior on sliceWidth { NumberAnimation { duration: 180; easing.type: Easing.OutCubic } }
                 width: stage.width
                 height: contentHeight
-                readonly property real contentHeight: previewHeight + 64
+                readonly property real contentHeight: previewHeight + stage.rowChrome
                 y: stage.rowCenter(index - root.scrollPosition) - contentHeight / 2
                 // Rows the stage edge clips fade with the share of them still on
                 // screen, so neighbouring collections peek in at the edges.
                 readonly property real edgeFade: Math.max(0, Math.min(1, (Math.min(y + contentHeight, stage.height) - Math.max(y, 40)) / contentHeight))
                 visible: y + contentHeight > 40 && y < stage.height && root.ready
-                opacity: (focused ? 1 : 0.7) * edgeFade
+                opacity: (0.7 + 0.3 * focusAmount) * edgeFade
                 z: focused ? 2 : 1
-                Behavior on opacity { NumberAnimation { duration: 160 } }
 
                 Text {
                     anchors.horizontalCenter: parent.horizontalCenter
@@ -550,9 +556,9 @@ FocusScope {
                     elide: Text.ElideRight
                     y: 0
                     text: row.modelData.name + '  ' + row.modelData.images.length
-                    color: row.focused ? Color.accent : Color.foreground
+                    color: Qt.tint(Color.foreground, Util.alpha(Color.accent, row.focusAmount))
                     font.family: Style.fontFamily
-                    font.pixelSize: row.focused ? 17 : 14
+                    font.pixelSize: (14 + 3 * row.focusAmount) * stage.textScale
                     MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: root.focusCollection(row.modelData.id) }
                 }
 
@@ -593,12 +599,13 @@ FocusScope {
                         emphasis: layout.emphasis
                         activeTheme: Model.slug(image) === root.activeSlug
                         rowFocused: row.focused
+                        rowFocus: row.focusAmount
                         source: image.thumbnailPath || image.filePath
                         width: layout.width
                         height: layout.height
-                        skew: row.focused ? 14 : 8
+                        skew: 8 + 6 * row.focusAmount
                         x: layout.x
-                        y: 30 + layout.y
+                        y: stage.headingHeight + layout.y
                         z: (selected ? 101 : 0) + 100 - Math.abs(shownOffset) * 10
                         onClicked: {
                             if (row.focused && selected) root.applyTheme()
@@ -613,7 +620,7 @@ FocusScope {
                     width: row.previewWidth + 120
                     height: row.previewHeight
                     anchors.horizontalCenter: parent.horizontalCenter
-                    y: 30
+                    y: stage.headingHeight
                     color: Util.alpha(Color.background, 0.3)
                     border.color: Color.imagePicker.unselectedBorder
                     Text {
@@ -626,24 +633,24 @@ FocusScope {
                             ? 'No themes in this collection' : 'Choose a theme, then Ctrl+M\nto add it to this collection.'
                         color: Color.muted
                         font.family: Style.fontFamily
-                        font.pixelSize: 13
+                        font.pixelSize: 13 * stage.textScale
                     }
                     MouseArea { anchors.fill: parent; onClicked: { root.focusCollection(row.modelData.id); root.focusPicker() } }
                 }
 
                 Text {
                     anchors.horizontalCenter: parent.horizontalCenter
-                    y: row.previewHeight + 40
+                    y: stage.headingHeight + row.previewHeight + stage.captionGap
                     width: row.stackWidth
-                    height: 24
+                    height: stage.captionHeight
                     horizontalAlignment: Text.AlignHCenter
                     verticalAlignment: Text.AlignVCenter
                     elide: Text.ElideRight
                     text: row.selectedImage ? Model.label(row.selectedImage)
                         + (root.collectionData.favorites.indexOf(Model.slug(row.selectedImage)) >= 0 ? '  ★' : '') : ''
-                    color: row.focused ? Color.accent : Color.foreground
+                    color: Qt.tint(Color.foreground, Util.alpha(Color.accent, row.focusAmount))
                     font.family: Style.fontFamily
-                    font.pixelSize: row.focused ? 15 : 13
+                    font.pixelSize: (13 + 2 * row.focusAmount) * stage.textScale
                 }
             }
         }
