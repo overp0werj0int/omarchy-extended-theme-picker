@@ -51,6 +51,27 @@ Use Ctrl+M to change memberships. “New collection…” creates a collection a
 
 Delete opens choices followed by a confirmation. Removing a membership or a collection keeps theme files installed. **Uninstall removes a user-installed theme's files, including local edits, and its memberships.** The active theme and Omarchy defaults cannot be uninstalled here. Escape returns from confirmation to the choices.
 
+## Settings
+
+Both effects are off by default. Set them in this plugin's entry in `~/.config/omarchy/shell.json`; changes apply without restarting the shell.
+
+```json
+{
+  "plugins": [
+    {
+      "id": "io.github.ejuro.extended-theme-picker",
+      "cardSwapAnimation": true,
+      "glassOverlay": true
+    }
+  ]
+}
+```
+
+| Key | Effect |
+| --- | --- |
+| `cardSwapAnimation` | The outgoing card shrinks back into the stack while the incoming one slides forward and expands. |
+| `glassOverlay` | Draws the picker on a frosted-glass backdrop. The blur comes from Hyprland, so the plugin adds a layer rule for the picker's namespace the first time it opens. |
+
 ## Update
 
 ```sh
