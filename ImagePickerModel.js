@@ -82,6 +82,30 @@ function nextSelectedIndexForFilter(images, selectedIndex, filterText) {
   return firstMatchingIndex(images, filterText)
 }
 
+function settingsFromShellJson(raw, pluginId) {
+  var settings = { cardSwapAnimation: false, glassOverlay: false }
+  try {
+    var plugins = JSON.parse(raw).plugins
+    var entry = (Array.isArray(plugins) ? plugins : []).find(function(plugin) { return plugin && plugin.id === pluginId })
+    if (entry) {
+      settings.cardSwapAnimation = entry.cardSwapAnimation === true
+      settings.glassOverlay = entry.glassOverlay === true
+    }
+  } catch (e) {}
+  return settings
+}
+
+function cardLayout(offset, L) {
+  var t = Math.min(1, Math.abs(offset))
+  var width = L.previewWidth * (1 - t) + L.sliceWidth * t
+  var height = L.previewHeight * (1 - t) + L.sliceHeight * t
+  var x
+  if (offset <= 0) x = L.previewX + offset * L.step
+  else if (offset < 1) x = L.previewX * (1 - offset) + L.firstRightX * offset
+  else x = L.firstRightX + (offset - 1) * L.step
+  return { x: x, y: (L.previewHeight - height) / 2, width: width, height: height, emphasis: 1 - t }
+}
+
 if (typeof module !== "undefined") {
   module.exports = {
     nameForPath: nameForPath,
@@ -92,6 +116,8 @@ if (typeof module !== "undefined") {
     filteredPosition: filteredPosition,
     selectedFilteredPosition: selectedFilteredPosition,
     indexForSelectedImage: indexForSelectedImage,
-    nextSelectedIndexForFilter: nextSelectedIndexForFilter
+    nextSelectedIndexForFilter: nextSelectedIndexForFilter,
+    settingsFromShellJson: settingsFromShellJson,
+    cardLayout: cardLayout
   }
 }

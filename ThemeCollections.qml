@@ -3,10 +3,12 @@ import Quickshell
 import Quickshell.Io
 import qs.Commons
 import "CollectionsModel.js" as Model
+import "ImagePickerModel.js" as ImagePickerModel
 
 FocusScope {
     id: root
     property var images: []
+    property bool swapAnimation: false
     property string currentImage: ""
     readonly property string activeSlug: currentImage ? Model.slug({filePath: currentImage}) : (collectionData.current || '')
     property string preferredCollection: ''
@@ -546,25 +548,52 @@ FocusScope {
                 }
 
                 Repeater {
-                    model: row.visible ? Model.neighbors(row.modelData.images, row.selectedIndex) : []
+                    model: row.visible ? row.modelData.images.length : 0
                     delegate: ThemeCard {
-                        required property var modelData
-                        readonly property int offset: modelData.offset
+                        id: card
+                        required property int index
+                        readonly property var image: row.modelData.images[index]
+                        readonly property var placement: Model.windowOffset(index, row.selectedIndex, row.modelData.images.length)
+                        readonly property int offset: placement.offset
+                        property real shownOffset: 0
+                        property bool wasShown: false
+                        property bool everShown: false
+                        Component.onCompleted: {
+                            shownOffset = offset
+                            wasShown = everShown = placement.shown
+                        }
+                        readonly property var layout: ImagePickerModel.cardLayout(shownOffset, {
+                            previewX: (row.width - row.previewWidth) / 2, previewWidth: row.previewWidth, previewHeight: row.previewHeight,
+                            sliceWidth: row.sliceWidth, sliceHeight: row.previewHeight * 0.92, step: row.step,
+                            firstRightX: (row.width + row.previewWidth) / 2 - (row.sliceWidth - row.step) })
+                        NumberAnimation { id: swap; target: card; property: "shownOffset"; duration: 220; easing.type: Easing.OutCubic }
+                        onOffsetChanged: {
+                            swap.stop()
+                            if (root.swapAnimation && wasShown && placement.shown && Math.abs(offset - shownOffset) <= 3) {
+                                swap.to = offset
+                                swap.start()
+                            } else {
+                                shownOffset = offset
+                            }
+                            wasShown = placement.shown
+                            if (placement.shown) everShown = true
+                        }
+                        visible: placement.shown
+                        loadSource: everShown
                         selected: offset === 0
-                        activeTheme: Model.slug(modelData.image) === root.activeSlug
+                        emphasis: layout.emphasis
+                        activeTheme: Model.slug(image) === root.activeSlug
                         rowFocused: row.focused
-                        source: modelData.image.thumbnailPath || modelData.image.filePath
-                        width: selected ? row.previewWidth : row.sliceWidth
-                        height: selected ? row.previewHeight : row.previewHeight * 0.92
+                        source: image.thumbnailPath || image.filePath
+                        width: layout.width
+                        height: layout.height
                         skew: row.focused ? 14 : 8
-                        x: selected ? (row.width - row.previewWidth) / 2
-                            : offset < 0 ? (row.width - row.previewWidth) / 2 + offset * row.step
-                            : (row.width + row.previewWidth) / 2 - (row.sliceWidth - row.step) + (offset - 1) * row.step
-                        y: 30 + (row.previewHeight - height) / 2
-                        z: selected ? 100 : 50 - Math.abs(offset)
+                        x: layout.x
+                        y: 30 + layout.y
+                        z: (selected ? 101 : 0) + 100 - Math.abs(shownOffset) * 10
                         onClicked: {
                             if (row.focused && selected) root.applyTheme()
-                            else root.choose(row.modelData.id, modelData.image)
+                            else root.choose(row.modelData.id, image)
                             root.focusPicker()
                         }
                     }

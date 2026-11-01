@@ -55,18 +55,12 @@ function openingSelection(groups, activeSlug, lastCollection) {
   return { group: group.id, image: group.images.find(function(i) { return slug(i) === activeSlug }) || group.images[0] || null }
 }
 
-function neighbors(images, selected) {
-  // One unique instance of each neighboring theme, wrapping at either end.
-  var count = images.length
-  if (!count) return []
+function windowOffset(index, selected, count) {
+  // Signed wrapped distance from the selection; shown covers the cards the row draws.
   var left = Math.min(5, Math.floor((count - 1) / 2))
   var right = Math.min(5, count - 1 - left)
-  var result = []
-  for (var offset = -left; offset <= right; offset++) {
-    var index = (selected + offset + count) % count
-    result.push({ image: images[index], index: index, offset: offset })
-  }
-  return result
+  var offset = (((index - selected + left) % count) + count) % count - left
+  return { offset: offset, shown: offset <= right }
 }
 
 function toggle(values, value) {
@@ -109,4 +103,4 @@ function gridSections(groups, columns, cellHeight) {
   })
 }
 
-if (typeof module !== 'undefined') module.exports = { slug, label, groups, position, openingSelection, neighbors, toggle, gridMove, gridSections }
+if (typeof module !== 'undefined') module.exports = { slug, label, groups, position, openingSelection, windowOffset, toggle, gridMove, gridSections }

@@ -7,6 +7,8 @@ Item {
     id: card
     property string source: ""
     property bool selected: false
+    property bool loadSource: true
+    property real emphasis: selected ? 1 : 0
     property bool activeTheme: false
     property bool rowFocused: false
     property real skew: 14
@@ -68,7 +70,7 @@ Item {
         Rectangle { anchors.fill: parent; color: Color.background }
         Image {
             anchors.fill: parent
-            source: card.source ? Util.fileUrl(card.source) : ""
+            source: card.loadSource && card.source ? Util.fileUrl(card.source) : ""
             sourceSize.width: card.previewWidth
             fillMode: Image.PreserveAspectCrop
             asynchronous: true
@@ -76,7 +78,7 @@ Item {
         }
         Rectangle {
             anchors.fill: parent
-            color: Util.alpha(Color.background, card.selected ? (card.rowFocused ? 0 : 0.18) : 0.48)
+            color: Util.alpha(Color.background, 0.48 + ((card.rowFocused ? 0 : 0.18) - 0.48) * card.emphasis)
         }
     }
     Shape {

@@ -59,6 +59,20 @@ Item {
   property int skewOffset: 28
   property int bottomChromeHeight: showLabels ? (filterable ? 104 : 74) : (filterable ? 60 : 30)
 
+  readonly property string pluginId: "io.github.ejuro.extended-theme-picker"
+  readonly property var settings: ImagePickerModel.settingsFromShellJson(shellConfig.text(), pluginId)
+  readonly property bool swapAnimation: settings.cardSwapAnimation
+  readonly property bool glassOverlay: settings.glassOverlay
+  property bool filtering: false
+
+  FileView {
+    id: shellConfig
+    path: Quickshell.env("HOME") + "/.config/omarchy/shell.json"
+    watchChanges: true
+    printErrors: false
+    onFileChanged: reload()
+  }
+
   onOpenedChanged: if (!opened) layoutSettled = false
 
   function scriptPath(name) {
@@ -157,12 +171,14 @@ Item {
   }
 
   function updateFilter(nextFilterText) {
+    filtering = true
     filterText = nextFilterText
 
     if (!itemMatches(selectedIndex)) {
       var first = ImagePickerModel.nextSelectedIndexForFilter(imageArray, selectedIndex, filterText)
       if (first >= 0) selectedIndex = first
     }
+    filtering = false
   }
 
   function releaseNextDoneFile() {
@@ -571,12 +587,32 @@ Item {
               property bool sourceActivated: nearby
               onNearbyChanged: if (nearby) sourceActivated = true
 
+              property real shownOffset: 0
+              Component.onCompleted: shownOffset = relativeIndex
+              readonly property var layout: ImagePickerModel.cardLayout(shownOffset, {
+                previewX: carousel.previewX, previewWidth: root.expandedWidth, previewHeight: root.expandedHeight,
+                sliceWidth: root.sliceWidth, sliceHeight: root.sliceHeight, step: carousel.itemStep,
+                firstRightX: carousel.previewX + root.expandedWidth + root.sliceSpacing })
+
+              NumberAnimation { id: swap; target: item; property: "shownOffset"; duration: 220; easing.type: Easing.OutCubic }
+
+              onRelativeIndexChanged: {
+                swap.stop()
+                if (root.swapAnimation && root.layoutSettled && !root.filtering && matched
+                    && Math.abs(shownOffset) <= 16 && Math.abs(relativeIndex - shownOffset) <= 3) {
+                  swap.to = relativeIndex
+                  swap.start()
+                } else {
+                  shownOffset = relativeIndex
+                }
+              }
+
               visible: nearby
-              x: selected ? carousel.previewX : (relativeIndex < 0 ? carousel.previewX + relativeIndex * carousel.itemStep : carousel.previewX + root.expandedWidth + root.sliceSpacing + (relativeIndex - 1) * carousel.itemStep)
-              width: selected ? root.expandedWidth : root.sliceWidth
-              height: selected ? root.expandedHeight : root.sliceHeight
-              y: selected ? 0 : (root.expandedHeight - root.sliceHeight) / 2
-              z: selected ? 100 : 50 - Math.min(Math.abs(relativeIndex), 40)
+              x: layout.x
+              width: layout.width
+              height: layout.height
+              y: layout.y
+              z: (selected ? 101 : 0) + 100 - Math.min(Math.abs(shownOffset), 40) * 2
 
               readonly property real skAbs: Math.abs(root.skewOffset)
               readonly property real topLeft: root.skewOffset >= 0 ? skAbs : 0
@@ -632,7 +668,7 @@ Item {
 
                 Rectangle {
                   anchors.fill: parent
-                  color: Util.alpha(root.dimColor, item.selected ? 0 : 0.42)
+                  color: Util.alpha(root.dimColor, 0.42 * (1 - item.layout.emphasis))
                 }
               }
 
@@ -704,6 +740,7 @@ Item {
       visible: active && root.opened && root.layoutSettled
       sourceComponent: ThemeCollections {
         allowUninstall: true
+        swapAnimation: root.swapAnimation
         images: root.imageArray
         currentImage: root.selectedImage
         presented: root.opened && root.layoutSettled
