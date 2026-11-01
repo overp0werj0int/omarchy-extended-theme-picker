@@ -46,15 +46,16 @@ FocusScope {
     readonly property bool removalConfirmation: dialog === 'delete' || dialog === 'delete-member' || dialog === 'delete-theme'
     property bool initialSelection: true
     property bool openingRefreshPending: false
-    property int firstVisibleRow: 0
     // Layout and browsing-preference saves must not recreate every grid delegate.
     readonly property string groupingData: JSON.stringify({favorites: collectionData.favorites, collections: collectionData.collections, stock: collectionData.stock || []})
     readonly property var groups: Model.groups(images, JSON.parse(groupingData), query, currentImage)
     onGroupsChanged: { syncResults(); if (initialSelection) Qt.callLater(restoreSelection) }
     readonly property int groupIndex: Math.max(0, groups.findIndex(function(g) { return g.id === root.collectionId }))
-    onGroupIndexChanged: {
-        if (groupIndex < firstVisibleRow) firstVisibleRow = groupIndex
-        else if (groupIndex >= firstVisibleRow + 3) firstVisibleRow = groupIndex - 2
+    // The focused collection stays centered; the stack scrolls around it.
+    property real scrollPosition: groupIndex
+    Behavior on scrollPosition {
+        enabled: root.presented && !root.initialSelection
+        NumberAnimation { duration: 220; easing.type: Easing.OutCubic }
     }
     readonly property var group: groups[groupIndex] || ({id: '', name: '', images: []})
     readonly property int themeIndex: Model.position(group.images, remembered[group.id], currentImage)
@@ -78,9 +79,6 @@ FocusScope {
     function syncResults() {
         if (!groups.some(function(g) { return g.id === root.collectionId }))
             collectionId = groups.length ? groups[0].id : ''
-        firstVisibleRow = Math.max(0, Math.min(firstVisibleRow, groups.length - 3))
-        if (groupIndex < firstVisibleRow) firstVisibleRow = groupIndex
-        else if (groupIndex >= firstVisibleRow + 3) firstVisibleRow = groupIndex - 2
     }
 
     function focusPicker() {
@@ -91,7 +89,6 @@ FocusScope {
     }
     function refresh() {
         query = ""
-        firstVisibleRow = 0
         dialog = ""
         errorText = ""
         initialSelection = true
@@ -470,11 +467,19 @@ FocusScope {
 
     Item {
         id: stage
-        // 30px heading + 240px preview + 10px caption gap + 24px caption,
-        // leaving 26px before the next collection heading even when expanded.
-        readonly property int rowPitch: 330
+        // A row is a 30px heading, its preview, a 10px gap and a 24px caption.
+        // Rows sit 26px apart: the focused row (240px preview) centered, the
+        // rest at their compact 115px preview height above and below it.
+        readonly property int focusedPitch: 330
+        readonly property int compactPitch: 205
+        readonly property real centerY: 40 + (height - 40) / 2
+        function rowCenter(distance) {
+            return centerY + distance * compactPitch
+                + (distance < 0 ? -1 : 1) * Math.min(1, Math.abs(distance)) * (focusedPitch - compactPitch) / 2
+        }
         width: 1040
-        height: 3 * rowPitch + 110
+        height: 1100
+        clip: true
         anchors.centerIn: parent
         scale: Math.min(1.25, (root.width - 64) / width, (root.height - 90) / height)
         opacity: root.gridMode ? 0 : root.dialog ? 0.22 : 1
@@ -525,12 +530,13 @@ FocusScope {
                 Behavior on step { NumberAnimation { duration: 180; easing.type: Easing.OutCubic } }
                 Behavior on sliceWidth { NumberAnimation { duration: 180; easing.type: Easing.OutCubic } }
                 width: stage.width
-                height: stage.rowPitch
-                // Center content in each fixed slot so expansion is balanced above and below.
-                // Scroll only when navigating beyond the three visible rows.
-                y: 40 + (index - root.firstVisibleRow) * stage.rowPitch + (240 - previewHeight) / 2
-                visible: index >= root.firstVisibleRow && index < root.firstVisibleRow + 3 && root.ready
-                opacity: focused ? 1 : 0.7
+                height: contentHeight
+                readonly property real contentHeight: previewHeight + 64
+                y: stage.rowCenter(index - root.scrollPosition) - contentHeight / 2
+                // Fade rows out over the last 60px before the stage edge clips them.
+                readonly property real edgeFade: Math.max(0, Math.min(1, Math.min(y - 40, stage.height - y - contentHeight) / 60 + 1))
+                visible: y + contentHeight > 40 && y < stage.height && root.ready
+                opacity: (focused ? 1 : 0.7) * edgeFade
                 z: focused ? 2 : 1
                 Behavior on opacity { NumberAnimation { duration: 160 } }
 
