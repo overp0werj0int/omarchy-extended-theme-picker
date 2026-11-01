@@ -55,7 +55,7 @@ FocusScope {
     property real scrollPosition: groupIndex
     Behavior on scrollPosition {
         enabled: root.presented && !root.initialSelection
-        NumberAnimation { duration: 220; easing.type: Easing.OutCubic }
+        NumberAnimation { duration: Style.duration(180); easing.type: Easing.BezierSpline; easing.bezierCurve: Style.easeOut }
     }
     readonly property var group: groups[groupIndex] || ({id: '', name: '', images: []})
     readonly property int themeIndex: Model.position(group.images, remembered[group.id], currentImage)
@@ -495,7 +495,7 @@ FocusScope {
         opacity: root.gridMode ? 0 : root.dialog ? 0.22 : 1
         visible: opacity > 0
         enabled: !root.gridMode && !root.dialog
-        Behavior on opacity { NumberAnimation { duration: 200; easing.type: Easing.InOutQuad } }
+        Behavior on opacity { NumberAnimation { duration: Style.duration(180); easing.type: Easing.BezierSpline; easing.bezierCurve: Style.easeOut } }
 
         MouseArea {
             anchors.fill: parent
@@ -581,7 +581,7 @@ FocusScope {
                             previewX: (row.width - row.previewWidth) / 2, previewWidth: row.previewWidth, previewHeight: row.previewHeight,
                             sliceWidth: row.sliceWidth, sliceHeight: row.previewHeight * 0.92, step: row.step,
                             firstRightX: (row.width + row.previewWidth) / 2 - (row.sliceWidth - row.step) })
-                        NumberAnimation { id: swap; target: card; property: "shownOffset"; duration: 220; easing.type: Easing.OutCubic }
+                        NumberAnimation { id: swap; target: card; property: "shownOffset"; duration: Style.duration(180); easing.type: Easing.BezierSpline; easing.bezierCurve: Style.easeOut }
                         onOffsetChanged: {
                             swap.stop()
                             if (root.swapAnimation && wasShown && placement.shown && Math.abs(offset - shownOffset) <= 3) {
@@ -673,8 +673,8 @@ FocusScope {
         visible: opacity > 0
         enabled: root.gridMode && !root.dialog
         scale: root.gridMode ? 1 : 0.97
-        Behavior on opacity { NumberAnimation { duration: 200; easing.type: Easing.InOutQuad } }
-        Behavior on scale { NumberAnimation { duration: 200; easing.type: Easing.OutCubic } }
+        Behavior on opacity { NumberAnimation { duration: Style.duration(180); easing.type: Easing.BezierSpline; easing.bezierCurve: Style.easeOut } }
+        Behavior on scale { NumberAnimation { duration: Style.duration(180); easing.type: Easing.BezierSpline; easing.bezierCurve: Style.easeOut } }
         onChosen: function(groupId, image) { root.choose(groupId, image); root.focusPicker() }
         onActivated: function(path) { root.applyTheme() }
     }
