@@ -73,7 +73,7 @@ Item {
         clip: true
         boundsBehavior: Flickable.StopAtBounds
         flickableDirection: Flickable.VerticalFlick
-        Behavior on contentY { enabled: grid.animateScroll && !viewport.dragging && !viewport.flicking; NumberAnimation { duration: Style.duration(160); easing.type: Easing.BezierSpline; easing.bezierCurve: Style.easeOut } }
+        Behavior on contentY { enabled: grid.animateScroll && !viewport.dragging && !viewport.flicking; NumberAnimation { duration: 160; easing.type: Easing.OutCubic } }
 
         Repeater {
             // Geometry changes reposition existing sections instead of
