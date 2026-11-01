@@ -600,6 +600,7 @@ FocusScope {
                         activeTheme: Model.slug(image) === root.activeSlug
                         rowFocused: row.focused
                         rowFocus: row.focusAmount
+                        textScale: stage.textScale
                         source: image.thumbnailPath || image.filePath
                         width: layout.width
                         height: layout.height

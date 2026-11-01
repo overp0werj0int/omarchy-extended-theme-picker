@@ -14,16 +14,18 @@ Item {
     property real rowFocus: rowFocused ? 1 : 0
     property real skew: 14
     property int previewWidth: 960
+    // The badge is drawn inside a scaled stage; this keeps its on-screen size.
+    property real textScale: 1
     signal clicked()
 
     Rectangle {
         anchors.top: parent.top
         anchors.right: parent.right
-        anchors.topMargin: 10
-        anchors.rightMargin: card.skew + 10
-        width: activeLabel.implicitWidth + 16
-        height: activeLabel.implicitHeight + 8
-        radius: 4
+        anchors.topMargin: 10 * card.textScale
+        anchors.rightMargin: card.skew + 10 * card.textScale
+        width: activeLabel.implicitWidth + 16 * card.textScale
+        height: activeLabel.implicitHeight + 8 * card.textScale
+        radius: 4 * card.textScale
         z: 2
         visible: card.activeTheme && card.selected
         color: Color.background
@@ -34,7 +36,7 @@ Item {
             text: 'Active'
             color: Color.foreground
             font.family: Style.fontFamily
-            font.pixelSize: 12
+            font.pixelSize: 12 * card.textScale
         }
     }
 
@@ -89,7 +91,8 @@ Item {
         ShapePath {
             fillColor: "transparent"
             strokeColor: card.selected && card.rowFocused ? Color.imagePicker.selectedBorder : Color.imagePicker.unselectedBorder
-            strokeWidth: card.selected && card.rowFocused ? 2 : 1
+            strokeWidth: 1
+            joinStyle: ShapePath.MiterJoin
             startX: card.skew; startY: 0
             PathLine { x: card.width; y: 0 }
             PathLine { x: card.width - card.skew; y: card.height }

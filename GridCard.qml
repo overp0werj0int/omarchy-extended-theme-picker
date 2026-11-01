@@ -24,7 +24,7 @@ Item {
         anchors.fill: parent
         color: Util.alpha(Color.background, card.rowFocused ? 0 : 0.18)
         border.color: card.rowFocused ? Color.imagePicker.selectedBorder : Color.imagePicker.unselectedBorder
-        border.width: card.rowFocused ? 2 : 1
+        border.width: 1
     }
     Rectangle {
         anchors.top: parent.top

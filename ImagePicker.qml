@@ -702,7 +702,8 @@ Item {
                 ShapePath {
                   fillColor: "transparent"
                   strokeColor: item.selected ? root.selectedBorder : root.unselectedBorder
-                  strokeWidth: item.selected ? 3 : 1
+                  strokeWidth: item.selected ? 1.5 : 1
+                  joinStyle: ShapePath.MiterJoin
                   startX: item.topLeft; startY: 0
                   PathLine { x: item.topRight; y: 0 }
                   PathLine { x: item.bottomRight; y: item.height }
