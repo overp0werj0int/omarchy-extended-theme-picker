@@ -477,11 +477,13 @@ FocusScope {
             return centerY + distance * compactPitch
                 + (distance < 0 ? -1 : 1) * Math.min(1, Math.abs(distance)) * (focusedPitch - compactPitch) / 2
         }
-        width: 1040
-        height: 1100
+        // Twice the scale that once fit three full-size rows, capped so the
+        // focused row's 904px stack (plus skew) still fits across the screen.
+        scale: Math.min(2 * Math.min(1.25, (root.width - 64) / 1040, (root.height - 90) / 1100), (root.width - 64) / 940)
+        width: (root.width - 64) / scale
+        height: (root.height - 90) / scale
         clip: true
         anchors.centerIn: parent
-        scale: Math.min(1.25, (root.width - 64) / width, (root.height - 90) / height)
         opacity: root.gridMode ? 0 : root.dialog ? 0.22 : 1
         visible: opacity > 0
         enabled: !root.gridMode && !root.dialog
@@ -533,8 +535,9 @@ FocusScope {
                 height: contentHeight
                 readonly property real contentHeight: previewHeight + 64
                 y: stage.rowCenter(index - root.scrollPosition) - contentHeight / 2
-                // Fade rows out over the last 60px before the stage edge clips them.
-                readonly property real edgeFade: Math.max(0, Math.min(1, Math.min(y - 40, stage.height - y - contentHeight) / 60 + 1))
+                // Rows the stage edge clips fade with the share of them still on
+                // screen, so neighbouring collections peek in at the edges.
+                readonly property real edgeFade: Math.max(0, Math.min(1, (Math.min(y + contentHeight, stage.height) - Math.max(y, 40)) / contentHeight))
                 visible: y + contentHeight > 40 && y < stage.height && root.ready
                 opacity: (focused ? 1 : 0.7) * edgeFade
                 z: focused ? 2 : 1
