@@ -32,6 +32,11 @@ Item {
   property var doneFilesToRelease: []
   property int rowLoadCount: 0
   property double openStartedAt: 0
+  // `{"source":"themes"}` summons (the theme menu, Super+Ctrl+T) build the
+  // theme rows here instead of passing them in, and apply via theme-set.
+  property string themeRows: ""
+  property bool themeMode: false
+  property bool themeOpenPending: false
   // The stock theme switcher supplies preview-cache paths. Other image
   // picker clients (wallpapers, screenshots, etc.) retain the original UI.
   readonly property bool themeCollections: showLabels && imageArray.length > 0
@@ -176,6 +181,14 @@ Item {
 
   function applySelected() {
     var path = currentPath()
+
+    if (themeMode) {
+      themeMode = false
+      root.opened = false
+      if (path) Util.execArgv(["omarchy-theme-set", ImagePickerModel.nameForPath(path)])
+      return
+    }
+
     if (!path || !selectionFile) {
       cancel()
       return
@@ -193,6 +206,9 @@ Item {
   }
 
   function cancel() {
+    themeMode = false
+    themeOpenPending = false
+
     if (requestActive)
       finishDoneFile(doneFile)
 
@@ -204,6 +220,8 @@ Item {
 
   function closeSelector(nextDoneFile) {
     requestSerial += 1
+    themeMode = false
+    themeOpenPending = false
 
     if (requestActive)
       finishDoneFile(doneFile)
@@ -239,6 +257,8 @@ Item {
       finishDoneFile(doneFile)
 
     requestSerial += 1
+    themeMode = false
+    themeOpenPending = false
 
     imageDirs = nextImageDirs
     imageRows = nextImageRows
@@ -336,6 +356,10 @@ Item {
     if (payload) {
       try { args = JSON.parse(payload) || {} } catch (e) { args = {} }
     }
+    if (args.source === "themes") {
+      openThemes()
+      return
+    }
     var dirs = String(args.imageDirs || imageDirs)
     var rows = String(args.imageRows || "")
     var sel = String(args.selectedImage || selectedImage)
@@ -370,6 +394,71 @@ Item {
       imagesLoaded = true
     } else if (imageRows) {
       loadRows(imageRows, false)
+    }
+  }
+
+  function currentThemePreview() {
+    var name = String(themeNameFile.text() || "").trim()
+    var images = ImagePickerModel.loadRows(themeRows)
+    for (var i = 0; i < images.length; i++) {
+      if (ImagePickerModel.nameForPath(images[i].filePath) === name) return images[i].filePath
+    }
+    return ""
+  }
+
+  // Opens from the rows cached at startup, then refreshes them; only the
+  // first open before that startup read lands waits on the script.
+  function openThemes() {
+    if (themeRows) openThemeRows()
+    else themeOpenPending = true
+    refreshThemeRows()
+  }
+
+  function openThemeRows() {
+    openSelector("", themeRows, currentThemePreview(), "", "", true, true)
+    themeMode = true
+  }
+
+  function refreshThemeRows() {
+    if (themeRowsProc.running) { themeRowsProc.queued = true; return }
+    themeRowsProc.running = true
+  }
+
+  function updateThemeRows(rows) {
+    var changed = rows !== themeRows
+    themeRows = rows
+
+    if (themeOpenPending) {
+      themeOpenPending = false
+      if (rows) openThemeRows()
+    } else if (changed && rows && themeMode && opened) {
+      selectedImage = currentPath() || currentThemePreview()
+      imageRows = rows
+      loadRows(rows, false)
+    }
+  }
+
+  Component.onCompleted: refreshThemeRows()
+
+  FileView {
+    id: themeNameFile
+    path: root.stateHome + "/omarchy/current/theme.name"
+    watchChanges: true
+    onFileChanged: reload()
+  }
+
+  Process {
+    id: themeRowsProc
+    property bool queued: false
+    command: [root.omarchyPath + "/bin/omarchy-theme-switcher", "--print-rows"]
+    stdout: StdioCollector {
+      onStreamFinished: root.updateThemeRows(String(text || "").trim())
+    }
+    onExited: {
+      if (queued) {
+        queued = false
+        running = true
+      }
     }
   }
 
