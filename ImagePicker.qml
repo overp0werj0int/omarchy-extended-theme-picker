@@ -41,7 +41,9 @@ Item {
   // it intentionally tracks the foundational background, not a surface role.
   property color dimColor: Color.background
   property color foreground: Color.imagePicker.text
-  property color scrim: Color.imagePicker.scrim
+  // Newer shells dropped `imagePicker.scrim` (the stock picker draws no
+  // backdrop); binding it directly assigns undefined to a color.
+  property color scrim: Color.imagePicker.scrim || "transparent"
   property color selectedBorder: Color.imagePicker.selectedBorder
   property color unselectedBorder: Color.imagePicker.unselectedBorder
   property int expandedWidth: 768
