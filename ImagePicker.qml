@@ -617,7 +617,7 @@ Item {
                 sliceWidth: root.sliceWidth, sliceHeight: root.sliceHeight, step: carousel.itemStep,
                 firstRightX: carousel.previewX + root.expandedWidth + root.sliceSpacing })
 
-              NumberAnimation { id: swap; target: item; property: "shownOffset"; duration: 220; easing.type: Easing.OutCubic }
+              NumberAnimation { id: swap; target: item; property: "shownOffset"; duration: Style.duration(220); easing.type: Easing.OutCubic }
 
               onRelativeIndexChanged: {
                 swap.stop()
